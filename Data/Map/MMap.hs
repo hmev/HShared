@@ -26,6 +26,10 @@ lookup :: (Ord k) => MMap k a -> k -> IO (Maybe (MNode a))
 lookup mmap k   = do map <- get mmap
                      return (Map.lookup k map)
 
+(!)    :: (Ord k) => MMap k a -> k -> IO a
+(!)    mmap k   = do Just node <- Data.Map.MMap.lookup mmap k
+                     return <=< get $ node
+                     
 member :: (Ord k) => MMap k a -> k -> IO Bool
 member mmap k   = do map <- get mmap 
                      return (Map.member k map)
@@ -33,10 +37,10 @@ member mmap k   = do map <- get mmap
 update :: (Ord k) => MMap k a -> (a -> Maybe a) -> k -> IO ()
 update mmap f k = do Just node <- Data.Map.MMap.lookup mmap k
                      val <- get node
-                     case f val of 
-                        Nothing -> delete mmap k
-                        Just newval -> do node $= newval 
+                     Just newVal <- return (f val)
+                     node $= newVal
 
-showIO :: (Ord k, Show a) => MMap k a -> IO ()
-showIO mmap = do map <- get mmap
-                 mapM_ (putStrLn <=< (return . show) <=< get) map
+(!=)   :: (Ord k) => MMap k a -> (k, a) -> IO ()
+(!=)  mmap (k,a)= do Just node <- Data.Map.MMap.lookup mmap k
+                     node $= a
+
