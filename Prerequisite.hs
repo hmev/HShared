@@ -1,11 +1,11 @@
 module Prerequisite (
       module Data.StateVar
-    , module GHC.IORef
+    , module Data.IORef
     , newStateVar, Prerequisite.show
 )where
 
-import GHC.IORef
-import Data.StateVar
+import Data.IORef
+
 import System.IO
 import Control.Monad
 

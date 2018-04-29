@@ -2,11 +2,9 @@ module Command.FileEdition where
 import Command.Command
 import Command.Manager
 
-import Element.ElementTable (showIO)
+import Utility
+import Element.ElementManager
 import Element.EpisodeManager
-import Data.StateVar
-
-type ModelPath = String
 
 -- create  :: ModelPath -> IO Manager
 -- create  = undefined
@@ -18,11 +16,21 @@ type ModelPath = String
 -- sync    = undefined
 
 
-todo :: Command -> CommandParams -> Manager -> IO ()
-todo Show _ (Manager mElemTable       _ _)
-    = do showIO mElemTable
+todo :: Command -> CommandParams -> Manager -> IO Manager
+todo Show _ mgr@(Manager mElemTable       _ memM)
+    = do putStrLn ""
+         putStrLn "-- start to show --"
+         putStrLn "Element Table :"
+         showIO mElemTable
+         putStrLn ""
+         putStrLn "Memento Manager :"
+         showIO memM
+         putStrLn "-- end showing --"
+         putStrLn ""
+         return mgr
 
-todo Save _ (Manager          _ mEpsMgr _)
-    = do EpisodeManager curr <- get mEpsMgr
-         mEpsMgr $= EpisodeManager (curr+1)
+todo Save _ mgr@(Manager          _ epsM memM)
+    = do EpisodeManager curr <- get epsM
+         epsM $= EpisodeManager (curr+1)
          putStrLn . show $ curr
+         return mgr

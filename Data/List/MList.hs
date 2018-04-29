@@ -2,7 +2,7 @@ module Data.List.MList where
 
 import qualified Data.Array.IO    as IOArray
 import           Data.Array.IO      (IOArray)
-import           GHC.IORef
+import           Data.IORef
 import           Data.StateVar
 import           Control.Monad
 
@@ -63,7 +63,6 @@ push_back mList e
          (size mList) $~ (+1)
          s <- get . size $ mList
          mList != (s-1, e)
-         putStrLn ("recalling to " ++ show s)
         
 -- private 
 
@@ -76,7 +75,6 @@ rescale mList newSize
                     realsize mList $= newSize
                     copyTo arr newarr
                     array mList $= newarr
-                    --putStrLn ("recalling to " ++ show newSize)
             else return ()
 
 checkscale :: MList a -> Int -> IO ()

@@ -1,7 +1,7 @@
 module Data.Set.MSet where
 
 import qualified Data.Set      as Set
-import           GHC.IORef
+import           Data.IORef
 import           Data.StateVar
 import           Control.Monad
 

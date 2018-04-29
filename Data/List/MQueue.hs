@@ -3,7 +3,7 @@ module Data.List.MQueue where
 import qualified Data.List.MList as MList
 import           Data.List.MList   (MList)
 import           Data.Ix           (inRange, rangeSize)
-import           GHC.IORef
+import           Data.IORef
 import           Data.StateVar
 import           Control.Monad
 
@@ -43,12 +43,15 @@ push_back (MQueue l bd) e
 
 pop_back :: MQueue a -> IO ()
 pop_back (MQueue l bd)
-    = do (MList.size l) $~ ((-) 1)
+    = do (MList.size l) $~ (\sz -> sz - 1)
          bd $~ (\(a,b) -> (a, b-1))
 
 pop_front :: MQueue a -> IO ()
 pop_front (MQueue l bd)
     = do bd $~ (\(a,b) -> (a+1, b))
+
+isEmpty :: MQueue a -> IO Bool
+isEmpty = size >=> (return . (== 0))
 
 size :: MQueue a -> IO Int
 size = (return . rangeSize) <=< (get . bound) 
@@ -62,3 +65,12 @@ tail :: MQueue a -> IO a
 tail (MQueue lst bd)
     = do (_, r) <- get bd
          lst MList.! r
+
+showIO :: (Show a) => MQueue a -> IO ()
+showIO (MQueue lst bd)
+    = do bd'@(f, s) <- get bd
+         putStrLn ("bound = " ++ show bd')
+         forM_ [f..s] (\i -> 
+            do val <- lst MList.! i
+               putStrLn . show $ (i, val)
+            )

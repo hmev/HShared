@@ -1,21 +1,21 @@
 module Command.Manager where
 
-import           Element.ElementTable      (MElemTable)
+import           Element.ElementManager      (ElementManager)
 import           Element.EpisodeManager    (MEpisodeManager)
 import           Command.Memento           (MementoManager)
 
-import qualified Element.ElementTable   as MElemTable
+import qualified Element.ElementManager   as ElementManager
 import qualified Element.EpisodeManager as MEpisodeManager
 import qualified Command.Memento        as MementoManager
 
 data Manager = Manager {
-      getElemT  :: MElemTable
+      getElemT  :: ElementManager
     , getEpsMgr :: MEpisodeManager
     , getMemMgr :: MementoManager
 }
 
 new :: IO Manager 
-new = do elemT  <- MElemTable.new
-         epsMgr <- MEpisodeManager.new
-         memMgr <- MementoManager.new
-         return (Manager elemT epsMgr memMgr)
+new = do elemM <- ElementManager.new
+         epsM  <- MEpisodeManager.new
+         memM  <- MementoManager.new
+         return (Manager elemM epsM memM)

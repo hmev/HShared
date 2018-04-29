@@ -1,7 +1,7 @@
 module Data.Map.MMap where
 
 import qualified Data.Map      as Map
-import           GHC.IORef
+import           Data.IORef
 import           Data.StateVar
 import           Control.Monad
 

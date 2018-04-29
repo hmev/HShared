@@ -1,5 +1,5 @@
 module Element.EpisodeManager where
-import Prerequisite
+import Utility
 import Element.Episode
 
 data EpisodeManager = EpisodeManager {

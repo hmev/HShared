@@ -2,10 +2,21 @@ Create 1 abc
 Create 2 bcd
 Create 3 ghc
 Show
-Delete 1 abc
+Edit   1 geh
+Show
+Undo 
+Show
+Redo
+Show
+Delete 1
+Show
+Undo
 Show
 Create 4 puga
+Undo
 Create 5 gwh
-Create 6 gagah
-Delete 3
+Show
+Undo
+Show
+Redo
 Show

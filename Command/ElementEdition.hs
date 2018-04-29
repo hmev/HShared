@@ -2,7 +2,7 @@ module Command.ElementEdition where
 import qualified Data.Map.MMap          as MMap
 import qualified Data.List.MQueue       as MQueue
 import           Element.Element        as Elem
-import qualified Element.ElementTable   as ElemT
+import           Element.ElementManager   as ElemT
 import           Element.Episode        as Eps
 import           Element.EpisodeManager as EpsMgr
 import           Command.Command        as CMMD
@@ -13,120 +13,128 @@ import           Control.Monad
 
 import           Command.Manager
 
--- parse :: [String] -> Manager -> IO ()
--- parse ("new" :ss) (Manager mElemTable mEpsMgr)
---     = do let id = read . head $ ss
---              name = head . tail $ ss
---          EpisodeManager curr <- get mEpsMgr
---          MMap.insert mElemTable id (Elem.Element name curr)
-
--- parse ("edit":ss) (Manager mElemTable mEpsMgr)
---     = do let id = read . head $ ss
---              newname = head . tail $ ss
---          EpisodeManager curr <- get mEpsMgr
---          MMap.update mElemTable (\_ -> Just (Elem.Element newname curr)) id
-
--- parse ("del":ss)  (Manager mElemTable mEpsMgr)
---     = do let id = read . head $ ss
---          EpisodeManager curr <- get mEpsMgr
---          MMap.delete mELemTable id
-
--- parse ("show":ss) (Manager mElemTable       _) 
---     = do MMap.showIO mElemTable
-
--- parse ("save":ss) (Manager          _ mEpsMgr)
---     = do EpisodeManager curr <- get mEpsMgr
---          mEpsMgr $= EpisodeManager (curr+1)
---          putStrLn . show $ curr
-         
--- parse _ _ 
---     = do return ()
+import           Utility
 
 -- todo --
 
-todo :: Command -> CommandParams -> Manager -> IO ()
-todo Create (sId:sName:[]) (Manager mElemTable mEpsMgr mMemMgr)
+todo :: Command -> CommandParams -> Manager -> IO Manager
+todo Create (sId:sName:[]) mgr@(Manager elemM epsM memM)
     = do id   <- return . read $ sId
-         eps  <- (return . current) <=< get $ mEpsMgr
-         elem <- return (Element sName (ElementHistory eps))
+         eps  <- (return . current) <=< get $ epsM
+         let elem  = Element sName (ElementHistory eps)
          -- add element
-         MMap.insert mElemTable id elem
+         MMap.insert (table elemM) id elem
          -- add memento
-         mem <- return $ Memento Create (ElemMem id elem)
-         addMemento mMemMgr mem
+         let mem = Memento Create (ElemMem id elem)
+         memM' <- addMemento memM mem
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
-todo Edit   (sId:sNewName:[]) (Manager mElemTable mEpsMgr mMemMgr)
+todo Edit   (sId:sNewName:[]) mgr@(Manager elemM epsM memM)
     = do id   <- return . read $ sId
-         eps  <- (return . current) <=< get $ mEpsMgr
-         elem <- return $ Element sNewName (ElementHistory eps)
+         eps  <- (return . current) <=< get $ epsM
+         let elem = Element sNewName (ElementHistory eps)
          -- add memento
-         oldElem <- mElemTable MMap.! id
-         mem  <- return $ Memento Edit (ElemMem id oldElem)
-         addMemento mMemMgr mem
+         oldElem <- (table elemM) MMap.! id
+         let mem = Memento Edit (ElemMem id oldElem)
+         memM' <- addMemento memM mem
          -- edit element
-         mElemTable MMap.!= (id, elem)
+         (table elemM) MMap.!= (id, elem)
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
-todo Delete (sId:[]) (Manager mElemTable mEpsMgr mMemMgr)
+todo Delete (sId:[]) mgr@(Manager elemM epsM memM)
     = do id <- return . read $ sId
          -- add memento 
-         oldElem <- mElemTable MMap.! id
-         mem <- return $ Memento Delete (ElemMem id oldElem)
-         addMemento mMemMgr mem
+         oldElem <- (table elemM) MMap.! id
+         let mem =  Memento Delete (ElemMem id oldElem)
+         memM' <- addMemento memM mem
          -- delete element
-         MMap.delete mElemTable id
+         MMap.delete (table elemM) id
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
 -- undo --
 
-undo :: Command -> Manager -> IO ()
-undo Create (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Create (ElemMem id _) <- getUndo mMemMgr
+undo :: Command -> Manager -> IO Manager
+undo Create mgr@(Manager elemM epsM memM)
+    = do Memento Create (ElemMem id _) <- getUndo memM
          -- delete element
-         MMap.delete mElemTable id
+         MMap.delete (table elemM) id
          -- deal with memento 
-         moveBackward mMemMgr
+         memM' <- moveBackward memM
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
-undo Edit   (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Edit (ElemMem id oldElem) <- getUndo mMemMgr
-         elem <- mElemTable MMap.! id
-         newMem <- return $ Memento Edit (ElemMem id elem)
+undo Edit   mgr@(Manager elemM epsM memM)
+    = do Memento Edit (ElemMem id oldElem) <- getUndo memM
+         elem <- (table elemM) MMap.! id
+         let newMem = Memento Edit (ElemMem id elem)
          -- roll back element
-         mElemTable MMap.!= (id, oldElem)
+         (table elemM) MMap.!= (id, oldElem)
          -- revise memento
-         moveBackward mMemMgr
-         cr <- get . curr $ mMemMgr
-         (get' mMemMgr) MQueue.!= (cr, newMem)
+         memM' <- moveBackward memM
+         (get' memM') MQueue.!= (curr memM', newMem)
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
-undo Delete (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Delete (ElemMem id elem) <- getUndo mMemMgr
+undo Delete mgr@(Manager elemM epsM memM)
+    = do Memento Delete (ElemMem id elem) <- getUndo memM
          -- add back element
-         MMap.insert mElemTable id elem
+         MMap.insert (table elemM) id elem
          -- revise memento 
-         moveBackward mMemMgr
+         memM' <- moveBackward memM
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
 -- -- redo --
 
-redo :: Command -> Manager -> IO ()
-redo Create (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Create (ElemMem id elem) <- getRedo mMemMgr
+redo :: Command -> Manager -> IO Manager
+redo Create mgr@(Manager elemM epsM memM)
+    = do Memento Create (ElemMem id elem) <- getRedo memM
          -- delete element
-         MMap.insert mElemTable id elem
+         MMap.insert (table elemM) id elem
          -- deal with memento 
-         moveForward mMemMgr
+         memM' <- moveForward memM
+         return (Manager elemM
+                         epsM
+                         memM'
+                )
 
-redo Edit   (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Edit (ElemMem id elem) <- getRedo mMemMgr
-         oldElem <- mElemTable MMap.! id
-         newMem <- return $ Memento Edit (ElemMem id oldElem)
+redo Edit   mgr@(Manager elemM epsM memM)
+    = do Memento Edit (ElemMem id newElem) <- getRedo memM
+         oldElem <- (table elemM) MMap.! id
+         putStrLn . show $ oldElem
+         let newMem = Memento Edit (ElemMem id oldElem)
          -- roll back element
-         mElemTable MMap.!= (id, oldElem)
+         (table elemM) MMap.!= (id, newElem)
          -- revise memento
-         cr <- (get . curr $ mMemMgr)
-         (get' mMemMgr) MQueue.!= (cr, newMem)
-         moveForward mMemMgr
+         (get' memM) MQueue.!= (curr memM, newMem)
+         memM' <- moveForward memM
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
 
-redo Delete (Manager mElemTable mEpsMgr mMemMgr)
-    = do Memento Delete (ElemMem id _) <- getRedo mMemMgr
+redo Delete mgr@(Manager elemM epsM memM)
+    = do Memento Delete (ElemMem id _) <- getRedo memM
          -- add back element
-         MMap.delete mElemTable id
+         MMap.delete (table elemM) id
          -- revise memento 
-         moveForward mMemMgr
+         memM'<- moveForward memM
+         return (Manager   elemM
+                           epsM
+                           memM'
+                )
