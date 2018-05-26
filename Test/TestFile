@@ -1,6 +1,6 @@
-Create 1 abc
-Create 2 bcd
-Create 3 ghc
+Create abc
+Create bcd
+Create ghc
 Show
 Edit   1 geh
 Show
@@ -12,9 +12,9 @@ Delete 1
 Show
 Undo
 Show
-Create 4 puga
+Create puga
 Undo
-Create 5 gwh
+Create gwh
 Show
 Undo
 Show

@@ -4,7 +4,7 @@ import Command.Manager
 
 import Utility
 import Element.ElementManager
-import Element.EpisodeManager
+import Element.IntervalManager
 
 -- create  :: ModelPath -> IO Manager
 -- create  = undefined
@@ -17,11 +17,11 @@ import Element.EpisodeManager
 
 
 todo :: Command -> CommandParams -> Manager -> IO Manager
-todo Show _ mgr@(Manager mElemTable       _ memM)
+todo Show _ mgr@(Manager elemM _ memM)
     = do putStrLn ""
          putStrLn "-- start to show --"
          putStrLn "Element Table :"
-         showIO mElemTable
+         showIO elemM
          putStrLn ""
          putStrLn "Memento Manager :"
          showIO memM
@@ -29,8 +29,11 @@ todo Show _ mgr@(Manager mElemTable       _ memM)
          putStrLn ""
          return mgr
 
-todo Save _ mgr@(Manager          _ epsM memM)
-    = do EpisodeManager curr <- get epsM
-         epsM $= EpisodeManager (curr+1)
+todo Save _ mgr@(Manager elemM epsM memM)
+    = do let curr = current epsM
+         let epsM' = IntervalManager (get' epsM) (curr+1)
          putStrLn . show $ curr
-         return mgr
+         return (Manager   elemM
+                           epsM'
+                           memM
+                )

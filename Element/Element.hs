@@ -1,10 +1,10 @@
 module Element.Element where
+import Element.Interval
 
 type ElementId = Int
-type Episode = Int
 
 data ElementHistory = ElementHistory {
-    modified :: Episode
+    modified :: IntervalId
 } deriving (Show, Read, Eq)
 
 data Element = Element {
